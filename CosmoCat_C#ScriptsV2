@@ -1,0 +1,154 @@
+//blast controller
+public class blastController : MonoBehaviour
+{
+
+    void Start()
+    {
+        Movement();
+
+        Despawn();
+    }
+
+    //moves right by speed
+    public float speed = 10f;
+    public Rigidbody2D blastRb;
+
+    void Movement()
+    {
+        blastRb.velocity = transform.right * speed;
+    }
+
+    //despawns after time
+    public float time = 6;
+
+    void Despawn()
+    {
+        Destroy(gameObject, time);
+    }
+}
+
+//player controller
+public class playerController : MonoBehaviour
+{
+    void LateUpdate()
+    {
+        Bounding();
+    }
+
+    private bool chargeAb = true;
+    void Update()
+    {
+
+        Movement();
+
+        if (chargeAb == false)
+        Shot();
+
+        if (chargeAb == true)
+        ChargeShot();
+
+    }
+
+    //moves by input over time, times speed
+    public float speed = 6.5f;
+
+    void Movement()
+    {
+        Vector3 movement = new Vector3(Input.GetAxis("Horizontal") * speed, Input.GetAxis("Vertical") * speed, 0.0f);
+        transform.position = transform.position + movement * Time.deltaTime;
+    }
+
+    //shoots by instantiating a prefab
+    public Transform ShotSpawn;
+
+    public GameObject blastPrefab;
+
+    void Shot()
+    {
+        if (Input.GetButtonDown("Fire1"))
+        {
+            Instantiate(blastPrefab, ShotSpawn.position, ShotSpawn.rotation);
+        }
+    }
+
+    //charges shot by holding button, increases size and damage with cap
+    public Transform prefabTransform;
+    public Transform blastHolder;
+
+    public float damage = 1f;
+    public float damageMulitplier = 4f;
+    private bool charging = false;
+    private float chargeRate = 0.5f;
+
+    void ChargeShot()
+    {
+        
+        if (Input.GetButtonDown("Fire1"))
+        {
+            charging = true;
+        }
+        if (charging == true)
+        {
+
+            if (prefabTransform.transform.localScale.x < 10)
+            {
+                prefabTransform.transform.localScale *= (Time.deltaTime * chargeRate) + 1;
+
+                damage = (damage + ((Time.deltaTime * chargeRate) * damageMulitplier));
+
+            }
+
+            if (Input.GetButtonUp("Fire1"))
+            {
+                charging = false;
+                damage = 1f;
+                blastPrefab.transform.SetParent(blastHolder, true);
+                Instantiate(blastPrefab, ShotSpawn.position, ShotSpawn.rotation);
+                prefabTransform.transform.localScale = new Vector3(1f, 1f, 1f);
+            }
+
+        }
+    }
+
+    //bounds the player to the extents of the camera
+    void Bounding()
+    {
+       
+        var left = Camera.main.ViewportToWorldPoint(Vector3.zero).x;
+
+        var right = Camera.main.ViewportToWorldPoint(Vector3.one).x;
+
+        var top = Camera.main.ViewportToWorldPoint(Vector3.zero).y;
+
+        var bottom = Camera.main.ViewportToWorldPoint(Vector3.one).y;
+
+        float x = transform.position.x, y = transform.position.y;
+
+        if (transform.position.x <= left + GetComponent<Renderer>().bounds.extents.x)
+        {
+
+            x = left + GetComponent<Renderer>().bounds.extents.x;
+
+        }
+        else if (transform.position.x >= right - GetComponent<Renderer>().bounds.extents.x)
+        {
+
+            x = right - GetComponent<Renderer>().bounds.extents.x;
+
+        }
+        if (transform.position.y <= top + GetComponent<Renderer>().bounds.extents.y)
+        {
+
+            y = top + GetComponent<Renderer>().bounds.extents.y;
+
+        }
+        else if (transform.position.y >= bottom - GetComponent<Renderer>().bounds.extents.y)
+        {
+
+            y = bottom - GetComponent<Renderer>().bounds.extents.y;
+        }
+
+        transform.position = new Vector3(x, y, transform.position.z);
+
+    }
+}
