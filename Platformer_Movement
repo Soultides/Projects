@@ -1,0 +1,185 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class PlayerMovement : MonoBehaviour
+{
+    private Rigidbody2D rb;
+
+    private Animator anim;
+
+    private CapsuleCollider2D norm;
+
+    public Collider2D slideCol;
+
+    private bool facingRight;
+    private bool melee;
+    private bool shoot;
+    private bool slide;
+    private bool isGrounded;
+    private bool jump;
+
+    [SerializeField]
+    private bool airControl;
+    [SerializeField]
+    private bool slippery;
+    [SerializeField]
+    private Transform[] groundPoints;
+    [SerializeField]
+    private float groundRadius;
+    [SerializeField]
+    private LayerMask whatIsGround;
+    [SerializeField]
+    private float jumpForce;
+    [SerializeField] // Makes it public
+    private float moveVelocity;
+    [SerializeField]
+    private float slideVelocity;
+
+    void Start()
+    {
+        // Create a reference to assign component to that variable
+        rb = GetComponent<Rigidbody2D>();
+        facingRight = true;
+        airControl = true;
+        anim = GetComponent<Animator>();
+        norm = gameObject.GetComponent<CapsuleCollider2D>();
+    }
+
+    void FixedUpdate() //where we have all our input fucntions
+    {
+        float horizontal = Input.GetAxis("Horizontal"); //Defines variable horizontal as determined by user input
+
+        isGrounded = IsGrounded();
+
+        HandleInput(horizontal);
+
+        HandleMovement(horizontal);
+
+        HandleAttacks(horizontal);
+
+        Flip(horizontal);
+
+        ResetValues();
+    }
+    // Function to handle all of the movement
+    private void HandleAttacks(float horizontal)
+    {
+        if (melee) //if variable is true then we trigger the animation parameter
+        {
+            anim.SetTrigger("melee");
+        }
+        if (shoot)
+        {
+            anim.SetTrigger("shoot");
+        }
+        if (slide)
+        {
+            anim.SetTrigger("slide");
+        }
+        if (jump)
+        {
+            anim.SetTrigger("jump");
+        }
+    }
+    private void HandleInput(float horizontal)
+    {
+        if (Input.GetMouseButtonDown(0))//left click
+        {
+            melee = true;
+        }
+        if (Input.GetMouseButtonDown(1))//right click
+        {
+            shoot = true;
+        }
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+        {
+            slide = true;
+
+            norm.enabled = false;
+            slideCol.enabled = true;
+        }
+        if (Input.GetKeyUp(KeyCode.LeftShift))
+        {
+            slide = false;
+
+            norm.enabled = true;
+            slideCol.enabled = false;
+        }
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            jump = true;
+        }
+    }
+    private void HandleMovement(float horizontal)
+    {
+        if (!anim.GetBool("slide") && !this.anim.GetCurrentAnimatorStateInfo(0).IsTag("MeleeAnim")&& (isGrounded || airControl))
+        {
+            rb.velocity = new Vector2(horizontal * moveVelocity, rb.velocity.y);
+        }
+        if (isGrounded && jump)
+        {
+            isGrounded = false;
+            rb.AddForce(new Vector2(0, jumpForce));
+        }
+        else if (isGrounded && jump)
+        {
+            isGrounded = true;
+            anim.SetTrigger("jump");
+            anim.SetBool("jump", false);
+        }
+        if (slide && !this.anim.GetCurrentAnimatorStateInfo(0).IsName("SlideAnim"))
+        {
+            anim.SetBool("slide", true);
+        }
+        else if (!this.anim.GetCurrentAnimatorStateInfo(0).IsName("SlideAnim")) //Makes sure you are done sliding before sliding again
+        {
+            anim.SetBool("slide", false);
+        }
+        if (jump && !this.anim.GetCurrentAnimatorStateInfo(0).IsName("RunAnim"))
+        {
+            anim.SetBool("jump", true);
+        }
+        anim.SetFloat("speed", Mathf.Abs(horizontal)); //Mathf.Abs to make our value always positive so that speed in animator is always between 0 and 0.01+
+    }
+    private void Flip(float horizontal)
+    {
+        if (horizontal > 0 && !facingRight || horizontal < 0 && facingRight)
+        {
+            facingRight = !facingRight; //the character is always defaulted to facing left at the beginning
+
+            Vector3 theScale = transform.localScale;
+
+            theScale.x *= -1; //flips the character by changing the sign of their x values
+
+            transform.localScale = theScale;
+        }
+    }
+    private void ResetValues()
+    {
+        melee = false;
+
+        shoot = false;
+
+        jump = false;
+
+        slide = false;
+    }
+    private bool IsGrounded()
+    {
+        if  (rb.velocity.y <= 0)
+        {
+            foreach (Transform point in groundPoints)
+            {
+                Collider2D[] colliders = Physics2D.OverlapCircleAll(point.position, groundRadius, whatIsGround);
+
+                for(int i=0; i < colliders.Length; i++)
+                    if (colliders[i].gameObject != gameObject)
+                    {
+                        return true;
+                    }
+            }
+        }
+        return false;
+    }
+}
