@@ -1,0 +1,30 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class blastController : MonoBehaviour
+{
+
+    void Start()
+    {
+        Movement();
+
+        Despawn();
+    }
+
+    //moves right by speed
+    public float speed = 10f;
+    public Rigidbody2D blastRb;
+
+    void Movement()
+    {
+        blastRb.velocity = transform.right * speed;
+    }
+
+    //despawns after time
+    public float time = 6;
+
+    void Despawn()
+    {
+        Destroy(gameObject, time);
+    }
