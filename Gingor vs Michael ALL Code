@@ -1,0 +1,267 @@
+public class Blast : MonoBehaviour {
+
+    public Transform ShotSpawn;
+    public GameObject bulletPrefab;
+	void Start () {
+		
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		if (Input.GetButtonDown("Fire1"))
+        {
+            Shoot();
+        }
+	}
+
+    void Shoot()
+    {
+        Instantiate(bulletPrefab, ShotSpawn.position, ShotSpawn.rotation);
+    }
+}
+
+public class Enemy : MonoBehaviour {
+
+    private float CurrentHealth;
+    public float MaxHealth;
+    public Slider Healthbar;
+    public GameObject deathEffect;
+
+    void Start()
+    {
+        MaxHealth = 200f;
+        CurrentHealth = MaxHealth;
+
+        Healthbar.value = CalculateHealth();
+    }
+
+    public void TakeDamage(int damage)
+    {
+        CurrentHealth -= damage;
+        Healthbar.value = CalculateHealth();
+
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
+    }
+    void Die()
+    {
+        Instantiate(deathEffect, transform.position, transform.rotation);
+        SceneManager.LoadScene("WIN");
+        Destroy(gameObject);
+    }
+
+    float CalculateHealth()
+    {
+        return CurrentHealth / MaxHealth;
+    }
+
+}
+
+public class ObstacleObject : MonoBehaviour
+{
+
+    public Rigidbody2D characterRigid;
+
+    public float minSpeed = 0.25f;
+    public float maxSpeed = 2f;
+
+    public int damage = 1;
+
+    float speed = 1f;
+
+    private void Start()
+    {
+
+        speed = Random.Range(minSpeed, maxSpeed);
+
+    }
+
+    void FixedUpdate()
+    {
+
+        Vector2 forward = new Vector2(transform.right.x, transform.right.y);
+
+        characterRigid.MovePosition(characterRigid.position + forward * Time.fixedDeltaTime * speed);
+
+    }
+
+
+    void OnTriggerEnter2D(Collider2D hitInfo)
+    {
+        Player player = hitInfo.GetComponent<Player>();
+        if (player != null)
+        {
+            player.playerTakeDamage(damage);
+            Destroy(gameObject);
+        }
+
+    }
+
+}
+
+public class MoveUpnDown : MonoBehaviour {
+    public float freq;
+    public float amp;
+    Vector3 posOffset = new Vector3();
+    Vector3 tempPos = new Vector3();
+    void Start()
+    {
+        posOffset = transform.position;
+        freq = Random.Range(freq - 0.5f, freq + 0.5f);
+        amp = Random.Range(amp - 0.5f, amp + 0.5f);
+        posOffset = transform.position;
+    }
+    void Update()
+    {
+        tempPos = posOffset;
+
+        transform.position = new Vector3(transform.position.x, tempPos.y + Mathf.Sin(Time.fixedTime * Mathf.PI * freq) * amp, transform.position.z);
+    }
+}
+
+public class Bullet : MonoBehaviour {
+
+    public float speed = 3f;
+    public Rigidbody2D rb;
+    public int damage = 1;
+    public GameObject impactEffect;
+    public float obstacleLife = 1;
+
+    void Start () {
+        rb.velocity = transform.right * speed;
+    }
+    void OnTriggerEnter2D(Collider2D hitInfo)
+    {
+       Enemy enemy = hitInfo.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.TakeDamage(damage);
+            Instantiate(impactEffect, transform.position, transform.rotation);
+            Destroy(gameObject);
+        }
+
+        MiniEnemy MiniEnemy = hitInfo.GetComponent<MiniEnemy>();
+        if (MiniEnemy != null)
+        {
+            MiniEnemy.TakeDamage(damage);
+            Instantiate(impactEffect, transform.position, transform.rotation);
+            Destroy(gameObject);
+        }
+
+    }
+}
+
+public class EnterScene : MonoBehaviour
+{
+
+    public Transform GameObject1;
+    public Transform GameObject2;
+    public Transform GameObject3;
+
+    public string ascript;
+    public string bscript;
+    public string cscript;
+
+    public Transform Position;
+    public Transform target;
+    public float speed;
+
+
+    void Start()
+    {
+        (GameObject1.GetComponent(ascript) as MonoBehaviour).enabled = false;
+        (GameObject2.GetComponent(bscript) as MonoBehaviour).enabled = false;
+        (GameObject3.GetComponent(cscript) as MonoBehaviour).enabled = false;
+    }
+    void Update()
+    {
+
+        if (Position.transform.position.x < 9)
+        {
+            (GameObject1.GetComponent(ascript) as MonoBehaviour).enabled = true;
+            (GameObject2.GetComponent(bscript) as MonoBehaviour).enabled = true;
+            (GameObject3.GetComponent(cscript) as MonoBehaviour).enabled = true;
+        }
+
+        float step = speed * Time.deltaTime;
+        transform.position = Vector3.MoveTowards(transform.position, target.position, step);
+    }
+}
+
+public class SpawnDestroy : MonoBehaviour {
+
+    public GameObject newObj;
+
+    public float obstacleLife = 1;
+
+    public float spawnDelay = 3;
+
+    public Transform[] spawnPoints;
+    
+    void Start () {
+
+        StartCoroutine(SpawnDestroyFunction(newObj));
+
+    }
+
+    void Update () {
+		
+	}
+
+    IEnumerator SpawnDestroyFunction(GameObject prefab){
+
+
+        while (true)
+        {
+            int randomIndex = Random.Range(0, spawnPoints.Length);
+
+            Transform spawnPoint = spawnPoints[randomIndex];
+
+            GameObject obj = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
+            
+            Destroy(obj, obstacleLife);
+
+            yield return new WaitForSeconds(spawnDelay);
+
+        }
+    }
+}
+
+public class Player : MonoBehaviour {
+    private float CurrentHealth;
+    public float MaxHealth;
+    public Slider Healthbar;
+    public GameObject deathEffect;
+
+    void Start()
+    {
+        MaxHealth = 6f;
+        CurrentHealth = MaxHealth;
+
+        Healthbar.value = CalculateHealth();
+    }
+
+    public void playerTakeDamage(int damage)
+    {
+        CurrentHealth -= damage;
+        Healthbar.value = CalculateHealth();
+
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
+    }
+    void Die()
+    {
+        Instantiate(deathEffect, transform.position, transform.rotation);
+        SceneManager.LoadScene("FAIL");
+        Destroy(gameObject);
+    }
+
+    float CalculateHealth()
+    {
+        return CurrentHealth / MaxHealth;
+    }
+}
